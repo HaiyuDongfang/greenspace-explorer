@@ -1,0 +1,21 @@
+{
+  "type": "FeatureCollection",
+  "name": "demo_networks",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"park_id": "demo-001", "network_type": "footway"},
+      "geometry": {"type": "LineString", "coordinates": [[174.752, -36.847], [174.754, -36.849], [174.758, -36.850]]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"park_id": "demo-002", "network_type": "path"},
+      "geometry": {"type": "LineString", "coordinates": [[174.767, -36.857], [174.770, -36.859], [174.773, -36.860]]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"park_id": "demo-002", "network_type": "steps"},
+      "geometry": {"type": "LineString", "coordinates": [[174.770, -36.856], [174.770, -36.860]]}
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+.env
+
+# Editors and operating system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Raw and large GIS datasets
+/data/raw/
+/data/external/
+*.gpkg
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.qix
+*.geojson
+*.feather
+*.parquet
+
+# Required runtime datasets (explicit allowlist; everything else above stays ignored)
+!/data/02processed/
+!/data/02processed/parks_with_localboard.gpkg
+!/data/01raw/
+!/data/01raw/road_network_in_parks_filtered.gpkg
+!/data/01raw/LocalElectoralBoundary_3350795404476040859/
+!/data/01raw/LocalElectoralBoundary_3350795404476040859/Local_Boards_(Outline).shp
+!/data/01raw/LocalElectoralBoundary_3350795404476040859/Local_Boards_(Outline).shx
+!/data/01raw/LocalElectoralBoundary_3350795404476040859/Local_Boards_(Outline).dbf
+!/data/01raw/LocalElectoralBoundary_3350795404476040859/Local_Boards_(Outline).prj
+!/data/01raw/LocalElectoralBoundary_3350795404476040859/Local_Boards_(Outline).cpg
+
+# Keep only small reviewed demo datasets
+!/data/demo/
+!/data/demo/*.geojson
+
+# Source/unused datasets stay out of Git (kept local)
+/data/01raw/road_network_auckland.gpkg
+/data/01raw/park_characteristics.gpkg
+/data/01raw/LocalElectoralBoundary_3350795404476040859/*.xml
+
+# Temporary analysis and generated outputs
+*.tmp
+*.bak
+*.log
+/output/
+/outputs/
+tmp/
+
+# Local configuration
+config/local.py
+config/*.local.*
+.env*
+!.env.example

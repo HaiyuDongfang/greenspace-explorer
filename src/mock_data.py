@@ -1,0 +1,91 @@
+"""Small synthetic dataset for the Auckland Greenspace Explorer UI prototype."""
+
+DEMO_PARKS = [
+    {
+        "id": "western-springs",
+        "name": "Western Springs Reserve",
+        "area": 64.2,
+        "local_board": "Albert-Eden",
+        "length": 3.8,
+        "network": {"Footway": 52, "Path": 28, "Track": 12, "Steps": 8},
+        "duration": {2: 114, 3: 76, 4: 57, 4.5: 51, 5: 46, 6: 38},
+        "bounds": [[-36.862, 174.715], [-36.862, 174.731], [-36.874, 174.731], [-36.874, 174.715]],
+    },
+    {
+        "id": "mt-albert",
+        "name": "Owairaka / Mount Albert",
+        "area": 52.6,
+        "local_board": "Albert-Eden",
+        "length": 4.6,
+        "network": {"Footway": 34, "Path": 31, "Track": 25, "Steps": 10},
+        "duration": {2: 138, 3: 92, 4: 69, 4.5: 61, 5: 55, 6: 46},
+        "bounds": [[-36.890, 174.704], [-36.890, 174.720], [-36.902, 174.720], [-36.902, 174.704]],
+    },
+    {
+        "id": "kendall-park",
+        "name": "Kendall Park",
+        "area": 18.4,
+        "local_board": "Albert-Eden",
+        "length": 1.7,
+        "network": {"Footway": 61, "Path": 39, "Track": 0, "Steps": 0},
+        "duration": {2: 51, 3: 34, 4: 26, 4.5: 23, 5: 20, 6: 17},
+        "bounds": [[-36.877, 174.733], [-36.877, 174.744], [-36.886, 174.744], [-36.886, 174.733]],
+    },
+    {
+        "id": "western-park",
+        "name": "Western Park",
+        "area": 5.9,
+        "local_board": "Waitematā",
+        "length": 1.2,
+        "network": {"Footway": 42, "Path": 20, "Track": 0, "Steps": 38},
+        "duration": {2: 36, 3: 24, 4: 18, 4.5: 16, 5: 14, 6: 12},
+        "bounds": [[-36.849, 174.747], [-36.849, 174.755], [-36.856, 174.755], [-36.856, 174.747]],
+    },
+    {
+        "id": "myers-park",
+        "name": "Myers Park",
+        "area": 8.1,
+        "local_board": "Waitematā",
+        "length": 1.5,
+        "network": {"Footway": 48, "Path": 14, "Track": 0, "Steps": 38},
+        "duration": {2: 45, 3: 30, 4: 23, 4.5: 20, 5: 18, 6: 15},
+        "bounds": [[-36.852, 174.757], [-36.852, 174.765], [-36.859, 174.765], [-36.859, 174.757]],
+    },
+    {
+        "id": "one-tree-hill",
+        "name": "Maungakiekie / One Tree Hill",
+        "area": 89.3,
+        "local_board": "Puketāpapa",
+        "length": 7.1,
+        "network": {"Footway": 39, "Path": 26, "Track": 29, "Steps": 6},
+        "duration": {2: 213, 3: 142, 4: 107, 4.5: 95, 5: 85, 6: 71},
+        "bounds": [[-36.895, 174.774], [-36.895, 174.792], [-36.909, 174.792], [-36.909, 174.774]],
+    },
+    {
+        "id": "hamilton",
+        "name": "Hamilton Road Reserve",
+        "area": 21.7,
+        "local_board": "Puketāpapa",
+        "length": 2.4,
+        "network": {"Footway": 45, "Path": 33, "Track": 22, "Steps": 0},
+        "duration": {2: 72, 3: 48, 4: 36, 4.5: 32, 5: 29, 6: 24},
+        "bounds": [[-36.912, 174.740], [-36.912, 174.752], [-36.921, 174.752], [-36.921, 174.740]],
+    },
+]
+
+DEMO_ROUTES = {
+    "western-springs": [("Footway", [[-36.864, 174.719], [-36.867, 174.723], [-36.871, 174.727]]), ("Path", [[-36.867, 174.718], [-36.869, 174.725], [-36.873, 174.729]])],
+    "mt-albert": [("Track", [[-36.892, 174.708], [-36.896, 174.711], [-36.900, 174.716]]), ("Steps", [[-36.895, 174.710], [-36.897, 174.710], [-36.899, 174.711]])],
+    "kendall-park": [("Footway", [[-36.879, 174.735], [-36.881, 174.739], [-36.884, 174.742]]), ("Path", [[-36.880, 174.736], [-36.883, 174.740], [-36.885, 174.743]])],
+    "western-park": [("Steps", [[-36.850, 174.750], [-36.852, 174.751], [-36.855, 174.753]]), ("Footway", [[-36.851, 174.748], [-36.853, 174.752], [-36.854, 174.754]])],
+    "myers-park": [("Footway", [[-36.853, 174.759], [-36.855, 174.761], [-36.858, 174.763]]), ("Steps", [[-36.854, 174.758], [-36.856, 174.760], [-36.857, 174.764]])],
+    "one-tree-hill": [("Track", [[-36.897, 174.778], [-36.900, 174.783], [-36.906, 174.789]]), ("Footway", [[-36.899, 174.776], [-36.902, 174.784], [-36.907, 174.787]])],
+    "hamilton": [("Path", [[-36.914, 174.743], [-36.917, 174.746], [-36.919, 174.750]]), ("Footway", [[-36.915, 174.742], [-36.918, 174.748], [-36.920, 174.751]])],
+}
+
+NETWORK_STYLES = {
+    "Footway": {"color": "#D49B55", "weight": 3, "dash": "solid"},
+    "Path": {"color": "#D49B55", "weight": 3, "dash": "5 4"},
+    "Track": {"color": "#D49B55", "weight": 3, "dash": "9 5 2 5"},
+    "Steps": {"color": "#D49B55", "weight": 5, "dash": "1 5"},
+}

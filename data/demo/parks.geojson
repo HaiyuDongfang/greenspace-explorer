@@ -1,0 +1,16 @@
+{
+  "type": "FeatureCollection",
+  "name": "demo_parks",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"park_id": "demo-001", "name": "Demo Harbour Park", "local_board": "Demo Area", "area_m2": 42000},
+      "geometry": {"type": "Polygon", "coordinates": [[[174.750, -36.845], [174.760, -36.845], [174.760, -36.852], [174.750, -36.852], [174.750, -36.845]]]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"park_id": "demo-002", "name": "Demo Domain Reserve", "local_board": "Demo Area", "area_m2": 28000},
+      "geometry": {"type": "Polygon", "coordinates": [[[174.765, -36.855], [174.775, -36.855], [174.775, -36.862], [174.765, -36.862], [174.765, -36.855]]]}
+    }
+  ]
+}
