@@ -4,7 +4,7 @@ import json
 import time
 from math import ceil
 from pathlib import Path
-
+from urllib.parse import quote
 import pandas as pd
 from ipyleaflet import GeoJSON, Polygon, Popup, Polyline
 from ipywidgets import HTML
@@ -31,6 +31,8 @@ except (FileNotFoundError, ValueError, OSError) as error:
     REAL_DATA = None
     APPLICATION_PARKS = DEMO_PARKS
 
+STATUS_PIN_ICON = '<svg class="status-chip-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>'
+
 PARKS_BY_ID = {park["id"]: park for park in APPLICATION_PARKS}
 
 
@@ -50,15 +52,23 @@ PARK_FOCUS_BUFFER, PARK_FOCUS_MAX_ZOOM = 0.9, 16
 AREA_ZOOM_GAIN = 0.25
 PARK_CLOSE_BUFFER, PARK_CLOSE_MAX_ZOOM = 0.2, 18
 
-PARK_STYLE_DEFAULT = {"color": "#39785A", "weight": 2, "fillColor": "#78A67E", "fillOpacity": 0.28}
-PARK_STYLE_OUTSIDE = {"color": "#3E6450", "weight": 1, "fillColor": "#4E7A5E", "fillOpacity": 0.5}
-PARK_STYLE_INSIDE = {"color": "#78A67E", "weight": 0.9, "fillColor": "#B9D5BC", "fillOpacity": 0.8}
-PARK_STYLE_MATCH = {"color": "#245B45", "weight": 1.1, "fillColor": "#39785A", "fillOpacity": 0.85}
+PARK_STYLE_DEFAULT = {"color": "#4F8A66", "weight": 0.6, "opacity": 0.55, "fillColor": "#78A67E", "fillOpacity": 0.45}
+PARK_STYLE_OUTSIDE = {"color": "#3E6450", "weight": 0.5, "opacity": 0.45, "fillColor": "#4E7A5E", "fillOpacity": 0.5}
+PARK_STYLE_INSIDE = {"color": "#6E9A7A", "weight": 0.6, "opacity": 0.5, "fillColor": "#B8D0BD", "fillOpacity": 0.85}
+PARK_STYLE_MATCH = {"color": "#245B45", "weight": 0.6, "opacity": 0.55, "fillColor": "#397D5B", "fillOpacity": 0.9}
 # interactive=False keeps the mask and board layers (drawn above the parks) from intercepting park clicks.
 MASK_STYLE = {"stroke": False, "fillColor": "#0F1F17", "fillOpacity": 0.38, "interactive": False}
 BOARD_STYLE_DEFAULT = {"color": "#7A8A7F", "weight": 1, "opacity": 1, "fillColor": "#7A8A7F", "fillOpacity": 0, "dashArray": "4", "interactive": False}
 BOARD_STYLE_SELECTED = {"color": "#245B45", "weight": 1, "opacity": 0.35, "fillColor": "#245B45", "fillOpacity": 0, "dashArray": "", "interactive": False}
 BOARD_STYLE_MUTED = {"color": "#C3C9C5", "weight": 1, "opacity": 1, "fillColor": "#E6E9E7", "fillOpacity": 0.05, "dashArray": "4", "interactive": False}
+# Hover feedback for the invisible Local Board hit layer; kept muted so it does not compete with the cyan park selection.
+BOARD_HOVER_STYLE = {"stroke": True, "color": "#245B45", "weight": 2.5, "opacity": 0.9, "fillColor": "#245B45", "fillOpacity": 0.08}
+
+
+def board_hit_style(feature):
+    """Invisible by default. The Local Board name is encoded in the path class for the tooltip script in shell.py."""
+    name = str(feature.get("properties", {}).get("LocalBoa_2") or "")
+    return {"stroke": False, "fillOpacity": 0, "className": f"board-hit board-name-{quote(name, safe='')}"}
 
 
 def park_style_for(board: str, matching_ids=None):
@@ -97,6 +107,12 @@ LOCAL_BOARD_CHOICES.update({
     })
 })
 
+# Built once at startup; selectize filters these client-side and shows at most 8 suggestions.
+PARK_SEARCH_CHOICES = {
+    park["id"]: f"{park['name']} · {park['local_board']}" if park.get("local_board") else park["name"]
+    for park in sorted(APPLICATION_PARKS, key=lambda item: item["name"].casefold())
+}
+
 
 def leaflet_polygon_locations(geometry):
     if geometry is None or geometry.is_empty:
@@ -131,6 +147,10 @@ def server(input, output, session):
     show_details = reactive.Value(False)
     sort_key = reactive.Value("name")
     results_scroll = reactive.Value(0)
+    # Set by Local Board and cross-board park clicks; handled by switch_local_board in a reactive context.
+    area_switch_request = reactive.Value(None)
+    # Single source of truth for the interaction mode: False = Normal Mode, True = Select by Local Board Mode.
+    board_mode = reactive.Value(False)
 
     map_widget = create_initial_map()
     map_layers = {"parks": [], "networks": {network_type: [] for network_type in NETWORK_STYLES}}
@@ -155,7 +175,16 @@ def server(input, output, session):
                 properties = (feature or {}).get("properties", {})
                 park_id = str(properties.get("GlobalID", properties.get("id", "")))
                 if park_id in PARKS_BY_ID:
+                    park_board = PARKS_BY_ID[park_id]["local_board"]
+                    with reactive.isolate():
+                        active_area = applied()["area"]
+                        select_by_board = board_mode()
+                    if select_by_board and park_board and park_board != active_area:
+                        # Manual mode: a park in another area only switches areas (no selection, Details or zoom).
+                        area_switch_request.set({"area": park_board, "nonce": time.monotonic()})
+                        return
                     navigation_source.set("map")
+                    results_panel_collapsed.set(False)
                     view_state.set("details")
                     selected_park.set(park_id)
                     show_details.set(True)
@@ -167,9 +196,10 @@ def server(input, output, session):
             return
 
         for park in APPLICATION_PARKS:
-            polygon = Polygon(locations=park["bounds"], color="#39785A", weight=2, fill_color="#78A67E", fill_opacity=0.28, name=park["name"])
+            polygon = Polygon(locations=park["bounds"], color="#4F8A66", weight=0.6, opacity=0.55, fill_color="#78A67E", fill_opacity=0.45, name=park["name"])
             def select_polygon(event, park_id=park["id"]):
                 navigation_source.set("map")
+                results_panel_collapsed.set(False)
                 view_state.set("details")
                 selected_park.set(park_id)
                 show_details.set(True)
@@ -209,6 +239,25 @@ def server(input, output, session):
         )
         map_widget.add(local_board_layer)
 
+    local_board_hit_layer = None
+    if REAL_DATA is not None:
+        def select_board(feature=None, **_event):
+            name = str(((feature or {}).get("properties") or {}).get("LocalBoa_2") or "")
+            if name:
+                area_switch_request.set({"area": name, "nonce": time.monotonic()})
+
+        # Sits in a pane below the park layer, so parks keep their own clicks, and above the non-interactive mask.
+        # It is only on the map in Select by Local Board Mode (see toggle_local_boards).
+        local_board_hit_layer = GeoJSON(
+            data=json.loads(boards[["LocalBoa_2", "geometry"]].to_json()),
+            style_callback=board_hit_style,
+            hover_style=BOARD_HOVER_STYLE,
+            pane="board_hit",
+            options=["pm_ignore", "pane"],  # forwards the pane to the Leaflet child layers, not just the group
+            name="Local Board selection",
+        )
+        local_board_hit_layer.on_click(select_board)
+
     mask_cache = {}
 
     def mask_data(area):
@@ -218,12 +267,15 @@ def server(input, output, session):
 
     mask_layer = None
     if REAL_DATA is not None:
-        # Added by toggle_parks, below the parks layer.
-        mask_layer = GeoJSON(data=mask_data("all"), style=dict(MASK_STYLE), name="Area mask")
+        # Added by toggle_parks. Its own pane keeps it below the interactive board layer; it is never interactive.
+        mask_layer = GeoJSON(
+            data=mask_data("all"), style=dict(MASK_STYLE), name="Area mask",
+            pane="area_mask", options=["pm_ignore", "pane"],
+        )
 
     highlight_layer = GeoJSON(
         data={"type": "FeatureCollection", "features": []},
-        style={"color": "#245B45", "weight": 5, "fillColor": "#245B45", "fillOpacity": 0.42},
+        style={"color": "#00D5E8", "weight": 2, "opacity": 1, "fillOpacity": 0},
         name="Selected park",
     )
 
@@ -257,6 +309,11 @@ def server(input, output, session):
         ]
 
     filter_error_text = reactive.Value("")
+
+    @reactive.effect
+    async def sync_active_board():
+        area = applied()["area"]
+        await session.send_custom_message("active_board", {"name": None if area == "all" else area})
 
     @reactive.effect
     async def sync_panel_state():
@@ -344,6 +401,33 @@ def server(input, output, session):
         selected_park.set(None)
         fit_after_layout(reset_filters_state)
 
+    @reactive.effect
+    @reactive.event(area_switch_request)
+    def switch_local_board():
+        request = area_switch_request()
+        board = request["area"]
+        current = applied()
+        if board == current["area"]:
+            return
+        # Only the area changes: applied speed/time are reused, and unsaved draft inputs stay unapplied.
+        next_filters = {**current, "area": board}
+        ui.update_select("area", selected=board)
+        applied.set(next_filters)
+        selected_park.set(None)
+        show_details.set(False)
+        if not has_searched():
+            # No filters applied yet: change the area, mask and zoom only, without creating a Results snapshot.
+            refresh_applied_map_styles(next_filters, None)
+            view_state.set("map")
+            fit_after_layout(next_filters)
+            return
+        next_matches = calculate_matches(next_filters)
+        results_snapshot.set(next_matches)
+        refresh_applied_map_styles(next_filters, next_matches)
+        view_state.set("results")
+        results_panel_collapsed.set(False)
+        fit_after_layout(next_filters)
+
     @render.ui
     def filter_error():
         if filter_error_text():
@@ -368,12 +452,25 @@ def server(input, output, session):
                 map_widget.remove_layer(layer)
 
     @reactive.effect
+    @reactive.event(input.toggle_board_mode)
+    async def toggle_board_mode():
+        board_mode.set(not board_mode())
+        await session.send_custom_message("board_mode", {"active": board_mode()})
+
+    @reactive.effect
     def toggle_local_boards():
         should_show = bool(input.show_local_boards()) and local_board_layer is not None
         if should_show and local_board_layer not in map_widget.layers:
             map_widget.add(local_board_layer)
         elif local_board_layer is not None and not should_show and local_board_layer in map_widget.layers:
             map_widget.remove_layer(local_board_layer)
+        if local_board_hit_layer is not None:
+            # The interactive board layer exists only in Select by Local Board Mode, so it cannot touch Normal Mode clicks.
+            show_hit = should_show and board_mode()
+            if show_hit and local_board_hit_layer not in map_widget.layers:
+                map_widget.add(local_board_hit_layer)
+            elif not show_hit and local_board_hit_layer in map_widget.layers:
+                map_widget.remove_layer(local_board_hit_layer)
 
     @reactive.effect
     @reactive.event(input.show_networks)
@@ -411,6 +508,23 @@ def server(input, output, session):
             selected_park.set(park_id)
             show_details.set(True)
             focus_park(park_id)
+
+    @reactive.effect
+    @reactive.event(input.park_search, ignore_none=True, ignore_init=True)
+    def select_searched_park():
+        park_id = input.park_search()
+        # An empty value is the search being cleared: leave selection, Details and filters untouched.
+        if park_id not in PARKS_BY_ID:
+            return
+        # Same navigation path as a map click, without touching the applied filters or Results snapshot.
+        navigation_source.set("map")
+        results_panel_collapsed.set(False)
+        view_state.set("details")
+        selected_park.set(park_id)
+        show_details.set(True)
+        focus_park(park_id)
+        # Reset the box so the same park can be searched again later.
+        ui.update_selectize("park_search", selected="")
 
     def padded_bounds(bounds):
         min_latitude, min_longitude, max_latitude, max_longitude = bounds
@@ -537,13 +651,17 @@ def server(input, output, session):
         if REAL_DATA is None:
             for layer in map_layers["parks"]:
                 if layer.name == PARKS_BY_ID.get(park_id, {}).get("name"):
-                    layer.color = "#245B45"
-                    layer.weight = 4
-                    layer.fill_opacity = 0.52
-                else:
-                    layer.color = "#39785A"
+                    layer.color = "#00D5E8"
                     layer.weight = 2
-                    layer.fill_opacity = 0.28
+                    layer.opacity = 1
+                    layer.fill_color = "#78A67E"
+                    layer.fill_opacity = 0.45
+                else:
+                    layer.color = "#4F8A66"
+                    layer.weight = 0.6
+                    layer.opacity = 0.55
+                    layer.fill_color = "#78A67E"
+                    layer.fill_opacity = 0.45
             return
         feature = None
         if park_id and REAL_DATA is not None:
@@ -564,7 +682,11 @@ def server(input, output, session):
         filters = applied()
         threshold = f"{filters['threshold']} min custom" if filters["custom"] else f"{filters['threshold']} min"
         area = "All Auckland" if filters["area"] == "all" else filters["area"]
-        return ui.tags.span(f"{area} | {filters['speed']:g} km/h | {threshold}")
+        return ui.tags.span(
+            ui.HTML(STATUS_PIN_ICON),
+            ui.tags.span(f"{area} · {filters['speed']:g} km/h · {threshold}", class_="status-chip-text"),
+            class_="status-chip-content",
+        )
 
     def sorted_matches():
         parks = list(results_snapshot())
@@ -651,7 +773,6 @@ def server(input, output, session):
                 ),
                 ui.h2("Estimated walking time"),
                 duration_rows,
-                ui.tags.p("Estimated time to walk the entire mapped path network.", class_="duration-explanation"),
                 ui.h2("Environmental characteristics"),
                 ui.tags.div(
                     ui.tags.span("Mean NDVI", class_="environment-label"),
@@ -726,7 +847,8 @@ def server(input, output, session):
     async def back_to_results():
         show_details.set(False)
         selected_park.set(None)
-        if navigation_source() == "results":
+        # An active Results list (from applied filters) is the Back destination whatever opened Details.
+        if has_searched():
             view_state.set("results")
             await session.send_custom_message("restore_results_scroll", {"scroll": results_scroll()})
         else:
@@ -744,7 +866,7 @@ def server(input, output, session):
             results_scroll.set(float(value))
 
 
-app = App(app_ui(area_choices=LOCAL_BOARD_CHOICES), server, static_assets={"/": Path(__file__).parent / "www"})
+app = App(app_ui(area_choices=LOCAL_BOARD_CHOICES, show_demo_notice=REAL_DATA is None, park_choices=PARK_SEARCH_CHOICES), server, static_assets={"/": Path(__file__).parent / "www"})
 
 if __name__ == "__main__":
     app.run()

@@ -12,6 +12,8 @@ from shapely.geometry import MultiPolygon
 
 PROCESSING_CRS = "EPSG:2193"
 DISPLAY_CRS = "EPSG:4326"
+SIMPLIFY_CRS = "EPSG:2193"
+PRESENTATION_SIMPLIFY_TOLERANCE_M = 1.0
 
 NETWORK_CATEGORY_MAPPING = {
     "footway": "Footway",
@@ -100,7 +102,9 @@ def _displayable_indices(frame: gpd.GeoDataFrame) -> list[int]:
     ]
 
 
-def _presentation_parks_geometries(frame: gpd.GeoDataFrame, tolerance_metres: float = 3.0) -> gpd.GeoDataFrame:
+def _presentation_parks_geometries(
+    frame: gpd.GeoDataFrame, tolerance_metres: float = PRESENTATION_SIMPLIFY_TOLERANCE_M
+) -> gpd.GeoDataFrame:
     frame = frame.iloc[_displayable_indices(frame)].copy()
     valid = frame.geometry.apply(lambda geometry: geometry.is_valid)
     invalid = ~valid
@@ -108,10 +112,9 @@ def _presentation_parks_geometries(frame: gpd.GeoDataFrame, tolerance_metres: fl
         frame.loc[invalid, "geometry"] = frame.loc[invalid, "geometry"].apply(
             lambda geometry: geometry.make_valid()
         )
-    frame["geometry"] = frame.geometry.apply(
-        lambda geometry: geometry.simplify(tolerance_metres, preserve_topology=True)
-        if geometry is not None and not geometry.is_empty else geometry
-    )
+    # Display copy only: simplify in metres (EPSG:2193), then reproject for the web map.
+    frame = frame.to_crs(SIMPLIFY_CRS)
+    frame["geometry"] = frame.geometry.simplify(tolerance_metres, preserve_topology=True)
     return frame.to_crs(DISPLAY_CRS)
 
 

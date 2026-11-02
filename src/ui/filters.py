@@ -1,7 +1,10 @@
 from shiny import ui
 
 
-def filter_panel(collapsed: bool = False, area_choices: dict[str, str] | None = None) -> ui.Tag:
+SEARCH_ICON = ui.HTML('<svg class="park-search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>')
+
+
+def filter_panel(collapsed: bool = False, area_choices: dict[str, str] | None = None, park_choices: dict[str, str] | None = None) -> ui.Tag:
     choices = area_choices or {"all": "All Auckland"}
     return ui.tags.aside(
         ui.input_action_button(
@@ -14,6 +17,14 @@ def filter_panel(collapsed: bool = False, area_choices: dict[str, str] | None = 
             class_="filter-toggle",
         ),
         ui.tags.div(
+            ui.tags.div(
+                SEARCH_ICON,
+                ui.input_selectize(
+                    "park_search", None, {"": "", **(park_choices or {})},
+                    options={"placeholder": "Search park name...", "maxOptions": 8, "plugins": ["clear_button"], "openOnFocus": False, "onType": ui.js_eval("function(text) { if (!text) { this.close(); } }")},
+                ),
+                class_="park-search",
+            ),
             ui.input_select("area", "Geographical area", choices, selected="all"),
             ui.input_radio_buttons("walking_speed", "Walking speed", {
                 "2": ui.tags.span(ui.tags.strong("2", class_="chip-value"), ui.tags.span("km/h", class_="chip-unit"), class_="filter-chip-content"),
