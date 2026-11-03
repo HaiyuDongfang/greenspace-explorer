@@ -6,13 +6,13 @@ from .results import results_panel
 from .status_bar import status_bar
 
 
-def app_ui(area_choices: dict[str, str] | None = None, show_demo_notice: bool = True, park_choices: dict[str, str] | None = None) -> ui.Tag:
+def app_ui(area_choices: dict[str, str] | None = None, show_demo_notice: bool = True, park_choices: dict[str, str] | None = None, road_filter: bool = False) -> ui.Tag:
     return ui.page_fluid(
         ui.tags.head(ui.tags.link(rel="stylesheet", href="styles.css")),
         ui.tags.header(ui.tags.h1("Auckland Greenspace Explorer", class_="app-title"), class_="app-header"),
         ui.tags.div(
             ui.tags.div(
-                ui.tags.div(filter_panel(area_choices=area_choices, park_choices=park_choices), class_="filter-panel-slot"),
+                ui.tags.div(filter_panel(area_choices=area_choices, park_choices=park_choices, road_filter=road_filter), class_="filter-panel-slot"),
                 ui.tags.div(output_widget("map"), class_="map-container"),
                 None if show_demo_notice else ui.input_action_button(
                     "toggle_board_mode", "Select manually", class_="board-mode-button",
@@ -87,19 +87,112 @@ def app_ui(area_choices: dict[str, str] | None = None, show_demo_notice: bool = 
             boardTooltip.className = 'board-tooltip';
             boardTooltip.innerHTML = '<strong></strong><span>Click to explore this area</span>';
             document.body.appendChild(boardTooltip);
-            document.addEventListener('mousemove', function (event) {
-                const path = event.target.closest ? event.target.closest('path.board-hit') : null;
-                const token = path && Array.from(path.classList).find(function (name) { return name.startsWith('board-name-'); });
-                if (!token) {
+            let parkTooltipFeatures = [];
+            let boardTooltipFeatures = [];
+            const parkFillColors = new Set(['#78A67E', '#4E7A5E', '#B8D0BD', '#397D5B']);
+            function tagParkPaths() {
+                if (!parkTooltipFeatures.length) return;
+                const paths = Array.from(document.querySelectorAll('.leaflet-overlay-pane path'))
+                    .filter(function (path) { return parkFillColors.has(path.getAttribute('fill')); });
+                if (paths.length !== parkTooltipFeatures.length) return;
+                paths.forEach(function (path, index) {
+                    const feature = parkTooltipFeatures[index];
+                    path.classList.add(
+                        'park-hover',
+                        'park-description-' + encodeURIComponent(feature.description || ''),
+                        'park-board-' + encodeURIComponent(feature.board || '')
+                    );
+                });
+            }
+            function tagBoardPaths() {
+                if (!boardTooltipFeatures.length) return;
+                const pane = document.querySelector('.leaflet-board_hit-pane');
+                const paths = pane ? Array.from(pane.querySelectorAll('path')) : [];
+                if (paths.length !== boardTooltipFeatures.length) return;
+                paths.forEach(function (path, index) {
+                    const name = boardTooltipFeatures[index] || '';
+                    path.classList.add('board-hit', 'board-name-' + encodeURIComponent(name));
+                });
+            }
+            let taggingScheduled = false;
+            function scheduleMapPathTagging() {
+                if (taggingScheduled) return;
+                taggingScheduled = true;
+                requestAnimationFrame(function () {
+                    taggingScheduled = false;
+                    tagParkPaths();
+                    tagBoardPaths();
+                });
+            }
+            let mapPathObserver = null;
+            const mapContainerObserver = new MutationObserver(function () {
+                const map = document.querySelector('.map-container .leaflet-container');
+                if (!map || mapPathObserver) return;
+                mapPathObserver = new MutationObserver(scheduleMapPathTagging);
+                mapPathObserver.observe(map, {childList: true, subtree: true});
+                mapContainerObserver.disconnect();
+                scheduleMapPathTagging();
+            });
+            mapContainerObserver.observe(document.body, {childList: true, subtree: true});
+            Shiny.addCustomMessageHandler('park_tooltip_features', function (message) {
+                parkTooltipFeatures = message;
+                scheduleMapPathTagging();
+            });
+            Shiny.addCustomMessageHandler('board_tooltip_features', function (message) {
+                boardTooltipFeatures = message;
+                scheduleMapPathTagging();
+            });
+            let activeBoardName = null;
+            let boardModeActive = false;
+            let lastPointerPosition = null;
+            function updateMapTooltip(position) {
+                if (!position) {
                     boardTooltip.style.display = 'none';
                     return;
                 }
-                boardTooltip.firstChild.textContent = decodeURIComponent(token.slice('board-name-'.length));
+                const target = document.elementFromPoint(position.x, position.y);
+                const parkPath = target?.closest('path.park-hover');
+                const boardPath = target?.closest('path.board-hit');
+                let tooltipType = null;
+                let tooltipText = '';
+                if (parkPath) {
+                    const classes = Array.from(parkPath.classList);
+                    const descriptionToken = classes.find(function (name) { return name.startsWith('park-description-'); });
+                    const parkBoardToken = classes.find(function (name) { return name.startsWith('park-board-'); });
+                    const parkBoard = parkBoardToken ? decodeURIComponent(parkBoardToken.slice('park-board-'.length)) : '';
+                    const description = descriptionToken ? decodeURIComponent(descriptionToken.slice('park-description-'.length)) : '';
+                    if (!boardModeActive || parkBoard === activeBoardName) {
+                        if (description) {
+                            tooltipType = 'park';
+                            tooltipText = description;
+                        }
+                    } else if (parkBoard) {
+                        tooltipType = 'board';
+                        tooltipText = parkBoard;
+                    }
+                } else if (boardModeActive && boardPath) {
+                    const boardToken = Array.from(boardPath.classList).find(function (name) { return name.startsWith('board-name-'); });
+                    const boardName = boardToken ? decodeURIComponent(boardToken.slice('board-name-'.length)) : '';
+                    if (boardName && boardName !== activeBoardName) {
+                        tooltipType = 'board';
+                        tooltipText = boardName;
+                    }
+                }
+                if (!tooltipType) {
+                    boardTooltip.style.display = 'none';
+                    return;
+                }
+                boardTooltip.firstChild.textContent = tooltipText;
+                boardTooltip.lastChild.style.display = tooltipType === 'board' ? '' : 'none';
                 boardTooltip.style.display = 'block';
-                const x = Math.min(event.clientX + 14, window.innerWidth - boardTooltip.offsetWidth - 8);
-                const y = Math.min(event.clientY + 16, window.innerHeight - boardTooltip.offsetHeight - 8);
+                const x = Math.min(position.x + 14, window.innerWidth - boardTooltip.offsetWidth - 8);
+                const y = Math.min(position.y + 16, window.innerHeight - boardTooltip.offsetHeight - 8);
                 boardTooltip.style.left = Math.max(8, x) + 'px';
                 boardTooltip.style.top = Math.max(8, y) + 'px';
+            }
+            document.addEventListener('mousemove', function (event) {
+                lastPointerPosition = {x: event.clientX, y: event.clientY};
+                updateMapTooltip(lastPointerPosition);
             });
             function reportMapViewport() {
                 const map = document.querySelector('.map-container');
@@ -134,19 +227,28 @@ def app_ui(area_choices: dict[str, str] | None = None, show_demo_notice: bool = 
             const activeBoardStyle = document.createElement('style');
             document.head.appendChild(activeBoardStyle);
             Shiny.addCustomMessageHandler('active_board', function (message) {
+                activeBoardName = message.name || null;
                 // The active board stops receiving pointer events, so it neither highlights nor shows a tooltip.
-                if (!message.name) { activeBoardStyle.textContent = ''; return; }
-                const token = 'board-name-' + encodeURIComponent(message.name);
-                activeBoardStyle.textContent = 'path.board-hit.' + CSS.escape(token) + ' { pointer-events: none !important; }';
-                // Clear a hover style left on the board that was under the cursor when it became active.
-                document.querySelectorAll('path.board-hit.' + CSS.escape(token)).forEach(function (path) {
-                    path.dispatchEvent(new MouseEvent('mouseout', {bubbles: true}));
-                });
+                if (!message.name) {
+                    activeBoardStyle.textContent = '';
+                } else {
+                    const token = 'board-name-' + encodeURIComponent(message.name);
+                    activeBoardStyle.textContent = 'path.board-hit.' + CSS.escape(token) + ' { pointer-events: none !important; }';
+                    // Clear a hover style left on the board that was under the cursor when it became active.
+                    document.querySelectorAll('path.board-hit.' + CSS.escape(token)).forEach(function (path) {
+                        path.dispatchEvent(new MouseEvent('mouseout', {bubbles: true}));
+                    });
+                }
+                scheduleMapPathTagging();
+                updateMapTooltip(lastPointerPosition);
             });
             Shiny.addCustomMessageHandler('board_mode', function (message) {
+                boardModeActive = Boolean(message.active);
                 const button = document.getElementById('toggle_board_mode');
                 button?.classList.toggle('active', message.active);
                 button?.setAttribute('aria-pressed', message.active ? 'true' : 'false');
+                scheduleMapPathTagging();
+                updateMapTooltip(lastPointerPosition);
             });
             Shiny.addCustomMessageHandler('panel_state', function (message) {
                 const panel = document.getElementById('right_panel');

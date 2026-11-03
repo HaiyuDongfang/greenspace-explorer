@@ -1,0 +1,15 @@
+highway,pedestrian_access,walkability,features,length_km
+cycleway,Public,Walkable: pedestrian access explicit,2008,219.828005
+cycleway,Unspecified,Uncertain: cycleway access unspecified,193,10.636444
+cycleway,Restricted,Restricted by pedestrian-access tag,52,10.928510
+motorway,Restricted,Restricted by pedestrian-access tag,35,3.688435
+motorway_link,Restricted,Restricted by pedestrian-access tag,15,0.848552
+corridor,Restricted,Restricted by pedestrian-access tag,10,0.267083
+corridor,Unspecified,Uncertain: specialist or link highway,6,0.123340
+via_ferrata,Restricted,Restricted by pedestrian-access tag,3,0.267431
+busway,Conditional,Uncertain: specialist or link highway,3,0.181871
+primary_link,Unspecified,Uncertain: specialist or link highway,3,0.084151
+secondary_link,Unspecified,Uncertain: specialist or link highway,3,0.056466
+busway,Restricted,Restricted by pedestrian-access tag,2,0.096595
+via_ferrata,Unspecified,Uncertain: specialist or link highway,1,0.036639
+trunk_link,Restricted,Restricted by pedestrian-access tag,1,0.021914

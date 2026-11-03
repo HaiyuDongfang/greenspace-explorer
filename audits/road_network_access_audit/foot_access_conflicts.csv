@@ -1,0 +1,88 @@
+audit_row_number,id,osm_type,DESCRIPTION,highway_normalized,foot_normalized,access_normalized,foot_tag_access_class,general_access_class,geometry_length_km
+1429,331325464,way,Otuataua Stonefields Reserve,unclassified,permissive,no,Conditional,Restricted,0.000198
+1462,105132168,way,Te Ara i Tautahi/Ambury Regional Park,service,yes,destination,Public,Conditional,0.239890
+1464,1287540039,way,Te Ara i Tautahi/Ambury Regional Park,service,yes,destination,Public,Conditional,0.032364
+1465,105132163,way,Te Ara i Tautahi/Ambury Regional Park,service,yes,destination,Public,Conditional,0.058261
+1775,312000715,way,Swanson Park,service,yes,destination,Public,Conditional,0.024699
+1781,1551018081,way,Swanson Park,service,yes,destination,Public,Conditional,0.011052
+1782,105682443,way,Swanson Park,service,yes,destination,Public,Conditional,0.132592
+1815,347000115,way,Manukau Foreshore East Cycleway,cycleway,designated,no,Public,Restricted,0.142837
+1871,262639358,way,Gloucester Park North,service,yes,permissive,Public,Conditional,0.009129
+2573,39461270,way,Waitakere West Regional Park,path,yes,no,Public,Restricted,0.050707
+2574,39461271,way,Waitakere West Regional Park,path,yes,no,Public,Restricted,0.061923
+2598,1314725697,way,Waitakere West Regional Park,path,yes,no,Public,Restricted,0.218714
+2956,1030819268,way,Waitakere West Regional Park,steps,yes,no,Public,Restricted,0.050216
+2957,662318915,way,Waitakere West Regional Park,path,yes,no,Public,Restricted,0.340527
+2960,664723714,way,Waitakere West Regional Park,path,yes,no,Public,Restricted,0.003383
+2966,1030819257,way,Waitakere West Regional Park,path,yes,no,Public,Restricted,0.075142
+2968,1030819264,way,Waitakere West Regional Park,steps,yes,no,Public,Restricted,0.006132
+2969,1030819258,way,Waitakere West Regional Park,path,yes,no,Public,Restricted,0.037013
+2971,1030819263,way,Waitakere West Regional Park,steps,yes,no,Public,Restricted,0.013624
+2973,1030819259,way,Waitakere West Regional Park,path,yes,no,Public,Restricted,0.041457
+2974,1030819265,way,Waitakere West Regional Park,steps,yes,no,Public,Restricted,0.010680
+2978,664723715,way,Waitakere West Regional Park,path,yes,no,Public,Restricted,0.121232
+3007,61350740,way,Waitakere West Regional Park,path,yes,no,Public,Restricted,0.420725
+3036,1308942795,way,Waitakere West Regional Park,path,yes,no,Public,Restricted,0.005783
+3317,30876571,way,Waitakere North Regional Park,service,permissive,private,Conditional,Restricted,1.399577
+8432,4828459,way,Maungawhau/Mount Eden,pedestrian,yes,private,Public,Restricted,0.121452
+8452,976502363,way,Maungawhau/Mount Eden,pedestrian,yes,private,Public,Restricted,0.025021
+8556,9779433,way,Maungawhau/Mount Eden,footway,yes,no,Public,Restricted,0.299642
+8729,25944228,way,Chamberlain Park,footway,yes,private,Public,Restricted,0.015573
+8730,25944230,way,Chamberlain Park,footway,yes,private,Public,Restricted,0.081605
+8990,972976727,way,Western Springs Outer Fields,footway,customers,private,Conditional,Restricted,0.000782
+8991,972976727,way,Western Springs Stadium Complex,footway,customers,private,Conditional,Restricted,0.005234
+8994,865287409,way,Western Springs Stadium Complex,footway,customers,private,Conditional,Restricted,0.076147
+9024,1126799953,way,Western Springs Stadium Complex,footway,customers,private,Conditional,Restricted,0.114566
+9025,865287401,way,Western Springs Stadium Complex,footway,customers,private,Conditional,Restricted,0.582063
+9026,1126799949,way,Western Springs Stadium Complex,path,customers,private,Conditional,Restricted,0.015650
+9027,1126799945,way,Western Springs Stadium Complex,steps,customers,private,Conditional,Restricted,0.022523
+9028,1126799950,way,Western Springs Stadium Complex,path,customers,private,Conditional,Restricted,0.032463
+9029,1126799944,way,Western Springs Stadium Complex,steps,customers,private,Conditional,Restricted,0.035227
+9031,1126799943,way,Western Springs Stadium Complex,steps,customers,private,Conditional,Restricted,0.044110
+9032,1126799948,way,Western Springs Stadium Complex,path,customers,private,Conditional,Restricted,0.018448
+9033,1126799942,way,Western Springs Stadium Complex,steps,customers,private,Conditional,Restricted,0.054503
+9034,1126799941,way,Western Springs Stadium Complex,steps,customers,private,Conditional,Restricted,0.043206
+9035,1126799947,way,Western Springs Stadium Complex,path,customers,private,Conditional,Restricted,0.102258
+9036,1126799946,way,Western Springs Stadium Complex,footway,customers,private,Conditional,Restricted,0.058691
+9037,1126799940,way,Western Springs Stadium Complex,steps,customers,private,Conditional,Restricted,0.049543
+9263,536562464,way,Oakley Creek Walkway,footway,yes,no,Public,Restricted,0.006614
+9573,380487588,way,Chamberlain Park,footway,yes,private,Public,Restricted,0.014121
+9799,1322796883,way,Te Pai Park,footway,yes,no,Public,Restricted,0.011631
+9800,1322796885,way,Te Pai Park,footway,yes,no,Public,Restricted,0.002411
+9811,1322796887,way,Te Pai Park,footway,yes,no,Public,Restricted,0.007231
+9812,1322796886,way,Te Pai Park,footway,yes,no,Public,Restricted,0.002140
+9814,1212909178,way,Te Pai Park,footway,yes,no,Public,Restricted,0.011819
+9815,1322796884,way,Te Pai Park,footway,yes,no,Public,Restricted,0.002108
+10124,120260823,way,Pukekawa/Auckland Domain,service,yes,private,Public,Restricted,0.018545
+10904,36224032,way,Albert Park,footway,yes,permissive,Public,Conditional,0.004919
+10912,1310967435,way,Dove Myer Robinson Park,service,yes,destination,Public,Conditional,0.000606
+10983,43435196,way,Dove Myer Robinson Park,service,yes,destination,Public,Conditional,0.319763
+11400,1004856220,way,Orakei Basin,service,yes,no,Public,Restricted,0.021518
+11580,313765380,way,Macpherson Reserve,service,yes,no,Public,Restricted,0.020127
+11775,710395803,way,Churchill Park,service,yes,destination,Public,Conditional,0.047408
+14807,953227258,way,Jellicoe St 65-75 - Silo Park,service,yes,private,Public,Restricted,0.013265
+14919,1136371853,way,Stanley Bay Park,cycleway,designated,permissive,Public,Conditional,0.005797
+15013,686244069,way,Northboro Reserve,service,yes,private,Public,Restricted,0.016036
+15342,1188082028,way,Esmonde Road Esplanade,cycleway,designated,no,Public,Restricted,0.022039
+15641,394510008,way,A F Thomas Park,footway,yes,permissive,Public,Conditional,0.033553
+15645,1192231464,way,A F Thomas Park,path,permissive,private,Conditional,Restricted,0.034626
+17540,422539633,way,Mairangi Bay Park,footway,yes,no,Public,Restricted,0.144990
+17551,422540411,way,Mairangi Bay Park,service,yes,private,Public,Restricted,0.031065
+17553,373574765,way,Mairangi Bay Park,service,yes,destination,Public,Conditional,0.069073
+17554,602197634,way,Mairangi Bay Park,service,yes,destination,Public,Conditional,0.057540
+18474,466313135,way,Western Reserve,footway,yes,no,Public,Restricted,0.010288
+18478,1061358822,way,Western Reserve,footway,yes,no,Public,Restricted,0.005674
+18517,734731125,way,Western Reserve,footway,yes,no,Public,Restricted,0.059080
+21900,1054609648,way,Arundel Reserve,service,yes,no,Public,Restricted,0.025159
+22398,1421680720,way,Falls Rd River Esplanade Reserve,footway,yes,private,Public,Restricted,0.029306
+22399,339887865,way,Falls Rd River Esplanade Reserve,footway,yes,private,Public,Restricted,0.301966
+24531,994511984,way,Botanic Gardens Regional Park,path,yes,no,Public,Restricted,0.043054
+24536,994511985,way,Botanic Gardens Regional Park,path,yes,no,Public,Restricted,0.006568
+24541,994511987,way,Botanic Gardens Regional Park,path,yes,no,Public,Restricted,0.007803
+25042,1429126686,way,Clevedon Scenic Reserve,path,yes,no,Public,Restricted,0.014139
+25051,1429126685,way,Clevedon Scenic Reserve,steps,yes,no,Public,Restricted,0.018593
+25054,298245160,way,Clevedon Scenic Reserve,path,yes,no,Public,Restricted,0.120212
+26633,951715407,way,Waitawa Regional Park,service,yes,permit,Public,Conditional,0.016583
+28499,28659006,way,Park Point Walkway,path,yes,permissive,Public,Conditional,0.145095
+28669,413496477,way,Park Point Walkway,path,yes,permissive,Public,Conditional,0.235875
+28960,983042086,way,Tapapakanga Regional Park,path,yes,no,Public,Restricted,0.815816

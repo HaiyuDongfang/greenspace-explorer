@@ -1,0 +1,10 @@
+category,features,length_km
+"Potential: pedestrian-oriented type, access unspecified",17590,1205.967609
+"Potential: road-like type, access unspecified",4495,385.203950
+Walkable: pedestrian-oriented highway,3134,354.914259
+Restricted by pedestrian-access tag,1317,269.779751
+Walkable: pedestrian access explicit,2008,219.828005
+Conditional or purpose-limited,322,37.291361
+Walkable: shared-road highway,175,33.536257
+Uncertain: cycleway access unspecified,193,10.636444
+Uncertain: specialist or link highway,16,0.482468

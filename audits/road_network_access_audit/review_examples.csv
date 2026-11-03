@@ -1,0 +1,21 @@
+audit_flag,audit_row_number,id,osm_type,DESCRIPTION,highway_normalized,service_normalized,foot_normalized,access_normalized,bicycle_normalized,motor_vehicle_normalized,pedestrian_access,walkability,geometry_length_km
+foot_use_sidepath,818,843402963,way,Wairaki Stream Reserve,residential,,use_sidepath,,,,Restricted,Restricted by pedestrian-access tag,0.032490
+foot_use_sidepath,863,115816882,way,Gittos Domain,residential,,use_sidepath,,,,Restricted,Restricted by pedestrian-access tag,0.000313
+foot_use_sidepath,1889,398433838,way,Taumanu Reserve,unclassified,,use_sidepath,,use_sidepath,,Restricted,Restricted by pedestrian-access tag,0.005891
+foot_use_sidepath,7562,45224333,way,Ken Maunder Park,residential,,use_sidepath,,,,Restricted,Restricted by pedestrian-access tag,0.012336
+foot_use_sidepath,8772,475189950,way,Arch Hill Scenic Reserve,primary,,use_sidepath,,,,Restricted,Restricted by pedestrian-access tag,0.018879
+foot_access_conflict,1429,331325464,way,Otuataua Stonefields Reserve,unclassified,,permissive,no,permissive,,Conditional,Conditional or purpose-limited,0.000198
+foot_access_conflict,1462,105132168,way,Te Ara i Tautahi/Ambury Regional Park,service,driveway,yes,destination,,,Public,Walkable: shared-road highway,0.239890
+foot_access_conflict,1464,1287540039,way,Te Ara i Tautahi/Ambury Regional Park,service,driveway,yes,destination,,,Public,Walkable: shared-road highway,0.032364
+foot_access_conflict,1465,105132163,way,Te Ara i Tautahi/Ambury Regional Park,service,driveway,yes,destination,,,Public,Walkable: shared-road highway,0.058261
+foot_access_conflict,1775,312000715,way,Swanson Park,service,driveway,yes,destination,,,Public,Walkable: shared-road highway,0.024699
+cycleway_access_unspecified,974,682194173,way,Kowhai Reserve,cycleway,,,,,,Unspecified,Uncertain: cycleway access unspecified,0.070170
+cycleway_access_unspecified,3925,1328287870,way,Puhinui Reserve,cycleway,,,,,,Unspecified,Uncertain: cycleway access unspecified,0.006106
+cycleway_access_unspecified,3926,1328287871,way,Colin Dale Park,cycleway,,,,,,Unspecified,Uncertain: cycleway access unspecified,0.011067
+cycleway_access_unspecified,3927,1328287871,way,Puhinui Reserve,cycleway,,,,,,Unspecified,Uncertain: cycleway access unspecified,0.000294
+cycleway_access_unspecified,5028,851937145,way,Totara Park,cycleway,,,,designated,,Unspecified,Uncertain: cycleway access unspecified,0.033766
+special_or_link_highway,1807,106710815,way,Waterfront Road Reserve,motorway,,no,,no,,Restricted,Restricted by pedestrian-access tag,0.104616
+special_or_link_highway,1808,106710815,way,Manukau Foreshore East Cycleway,motorway,,no,,no,,Restricted,Restricted by pedestrian-access tag,0.003193
+special_or_link_highway,1809,347098592,way,Waterfront Road Reserve,motorway,,no,,no,,Restricted,Restricted by pedestrian-access tag,0.031328
+special_or_link_highway,1810,347098592,way,Manukau Foreshore East Cycleway,motorway,,no,,no,,Restricted,Restricted by pedestrian-access tag,0.004068
+special_or_link_highway,1843,606514514,way,Taumanu Reserve,motorway,,no,,no,,Restricted,Restricted by pedestrian-access tag,0.005990

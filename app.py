@@ -1,10 +1,9 @@
-﻿"""Main Shiny application entry point."""
+"""Main Shiny application entry point."""
 
 import json
 import time
 from math import ceil
 from pathlib import Path
-from urllib.parse import quote
 import pandas as pd
 from ipyleaflet import GeoJSON, Polygon, Popup, Polyline
 from ipywidgets import HTML
@@ -15,11 +14,29 @@ from src.mock_data import DEMO_PARKS, DEMO_ROUTES, NETWORK_STYLES
 from src.data.loader import load_real_data
 from src.data.map_mask import mask_feature_collection
 from src.data.map_view import compute_view, expand_bounds
-from config.paths import AUCKLAND_NETWORKS_PATH, LOCAL_BOARDS_PATH, PARK_NETWORKS_PATH, PARKS_PATH
+from src.data.network import (
+    ACCESS_CLASSES,
+    DEFAULT_ROAD_FILTER,
+    HIGHWAY_CATEGORIES,
+    feature_collection,
+    load_network_data,
+    make_road_filter,
+    selected_lengths,
+    summarise,
+)
+from src.ui.network_charts import network_bars, network_donuts, road_line_style
+from config.paths import (
+    AUCKLAND_NETWORKS_PATH,
+    LOCAL_BOARDS_PATH,
+    PARK_NETWORK_STATS_PATH,
+    PARK_NETWORKS_PATH,
+    PARK_WALKING_NETWORK_PATH,
+    PARKS_PATH,
+)
 from src.ui.filters import filter_panel
 from src.ui.results import results_panel
 from src.ui.status_bar import status_bar
-from src.ui.map import AUCKLAND_CENTER, create_initial_map
+from src.ui.map import AUCKLAND_CENTER, PARK_SELECTION_STYLE, ROAD_PANE, create_initial_map, selected_park_layer_order
 from src.ui.shell import app_ui
 
 
@@ -30,6 +47,14 @@ except (FileNotFoundError, ValueError, OSError) as error:
     print(f"Real Auckland data unavailable; using demo data: {error}")
     REAL_DATA = None
     APPLICATION_PARKS = DEMO_PARKS
+
+# Processed walking network (loaded once). None means the old path_length_km behaviour stays in effect.
+NETWORK_DATA = None
+if REAL_DATA is not None:
+    try:
+        NETWORK_DATA = load_network_data(PARK_NETWORK_STATS_PATH, PARK_WALKING_NETWORK_PATH, (park["id"] for park in APPLICATION_PARKS))
+    except (FileNotFoundError, ValueError, OSError) as error:
+        print(f"Processed walking network unavailable; keeping existing park lengths: {error}")
 
 STATUS_PIN_ICON = '<svg class="status-chip-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>'
 
@@ -66,9 +91,8 @@ BOARD_HOVER_STYLE = {"stroke": True, "color": "#245B45", "weight": 2.5, "opacity
 
 
 def board_hit_style(feature):
-    """Invisible by default. The Local Board name is encoded in the path class for the tooltip script in shell.py."""
-    name = str(feature.get("properties", {}).get("LocalBoa_2") or "")
-    return {"stroke": False, "fillOpacity": 0, "className": f"board-hit board-name-{quote(name, safe='')}"}
+    """Invisible by default; pointer events are handled by the Local Board selection layer."""
+    return {"stroke": False, "fillOpacity": 0}
 
 
 def park_style_for(board: str, matching_ids=None):
@@ -77,12 +101,12 @@ def park_style_for(board: str, matching_ids=None):
     matching_ids None means no filters are applied to the map: neutral styling.
     """
     def style(feature):
+        properties = feature.get("properties", {})
         if board == "all" and matching_ids is None:
             return PARK_STYLE_DEFAULT
-        properties = feature.get("properties", {})
-        if board != "all" and str(properties.get("local_board") or "") != board:
+        elif board != "all" and str(properties.get("local_board") or "") != board:
             return PARK_STYLE_OUTSIDE
-        if matching_ids is not None and str(properties.get("GlobalID") or "") in matching_ids:
+        elif matching_ids is not None and str(properties.get("GlobalID") or "") in matching_ids:
             return PARK_STYLE_MATCH
         return PARK_STYLE_INSIDE
     return style
@@ -151,9 +175,18 @@ def server(input, output, session):
     area_switch_request = reactive.Value(None)
     # Single source of truth for the interaction mode: False = Normal Mode, True = Select by Local Board Mode.
     board_mode = reactive.Value(False)
+    # Road Filter state. The draft is the road_highway/road_access widgets (read only on Apply); road_applied is
+    # written only by the shared Apply/Reset. details_road is the exploratory selection of the open Details view.
+    road_applied = reactive.Value(DEFAULT_ROAD_FILTER)
+    details_road = reactive.Value(DEFAULT_ROAD_FILTER)
+    # Entry-specific Details input ids stop stale widget values from a previous Details view being reused.
+    details_entry = reactive.Value(0)
+    network_ready = NETWORK_DATA is not None
 
     map_widget = create_initial_map()
     map_layers = {"parks": [], "networks": {network_type: [] for network_type in NETWORK_STYLES}}
+    park_tooltip_features = []
+    board_tooltip_names = []
 
     def add_park_layers():
         for layer in map_layers["parks"]:
@@ -163,6 +196,13 @@ def server(input, output, session):
             parks = displayable_frame(REAL_DATA.presentation_parks)
             parks["GlobalID"] = parks["GlobalID"].astype(str)
             parks.rename(columns={"DESCRIPTION": "description", "LOCALBOARD_OFFICIAL": "local_board"}, inplace=True)
+            park_tooltip_features[:] = [
+                {
+                    "description": "" if pd.isna(row.description) else str(row.description),
+                    "board": "" if pd.isna(row.local_board) else str(row.local_board),
+                }
+                for row in parks[["description", "local_board"]].itertuples(index=False)
+            ]
             park_geojson = GeoJSON(
                 data=json.loads(parks[["GlobalID", "description", "local_board", "geometry"]].to_json()),
                 style={},
@@ -186,6 +226,7 @@ def server(input, output, session):
                     navigation_source.set("map")
                     results_panel_collapsed.set(False)
                     view_state.set("details")
+                    open_details_filters()
                     selected_park.set(park_id)
                     show_details.set(True)
                     focus_park(park_id)
@@ -231,6 +272,9 @@ def server(input, output, session):
     local_board_layer = None
     if REAL_DATA is not None:
         boards = displayable_frame(REAL_DATA.local_boards)
+        board_tooltip_names[:] = [
+            "" if pd.isna(name) else str(name) for name in boards["LocalBoa_2"]
+        ]
         local_board_layer = GeoJSON(
             data=json.loads(boards[["LocalBoa_2", "geometry"]].to_json()),
             style={},
@@ -275,7 +319,7 @@ def server(input, output, session):
 
     highlight_layer = GeoJSON(
         data={"type": "FeatureCollection", "features": []},
-        style={"color": "#00D5E8", "weight": 2, "opacity": 1, "fillOpacity": 0},
+        style=dict(PARK_SELECTION_STYLE),
         name="Selected park",
     )
 
@@ -286,8 +330,30 @@ def server(input, output, session):
     def map():
         return map_widget
 
-    def calculate_matches(filters):
+    network_length_cache = {}
+
+    def network_lengths(road):
+        """Selected network length (km) per park id for a Road Filter, computed once per distinct selection."""
+        if road not in network_length_cache:
+            if len(network_length_cache) >= 64:
+                network_length_cache.clear()
+            network_length_cache[road] = selected_lengths(NETWORK_DATA.length_table, road).to_dict()
+        return network_length_cache[road]
+
+    def open_details_filters():
+        """Start a Details view with the applied Road Filter; never reuses earlier temporary selections."""
+        with reactive.isolate():
+            details_road.set(road_applied())
+            details_entry.set(details_entry() + 1)
+
+    def calculate_matches(filters, road=None):
+        """Eligible parks for the applied Park Filter and Road Filter.
+
+        With the processed network, each park's length is its selected network length and the returned
+        records carry it as "length" so Results cards, sorting and averages need no other changes.
+        """
         speed = filters["speed"]
+        lengths = network_lengths(road or DEFAULT_ROAD_FILTER) if network_ready else None
         threshold = filters["threshold"]
         area = filters["area"]
 
@@ -297,16 +363,19 @@ def server(input, output, session):
                     return park["duration"][speed]
                 base_speed = 3
                 return park["duration"][base_speed] * base_speed / speed
-            length = park.get("length")
+            length = lengths.get(park["id"], 0.0) if lengths is not None else park.get("length")
             if length is None or length < 0 or speed <= 0:
                 return None
             return length / speed * 60
 
-        return [
+        matches = [
             park for park in APPLICATION_PARKS
             if (area == "all" or park["local_board"] == area)
             and (duration_at_speed(park) is not None and duration_at_speed(park) > threshold)
         ]
+        if lengths is None:
+            return matches
+        return [{**park, "length": lengths.get(park["id"], 0.0)} for park in matches]
 
     filter_error_text = reactive.Value("")
 
@@ -314,6 +383,12 @@ def server(input, output, session):
     async def sync_active_board():
         area = applied()["area"]
         await session.send_custom_message("active_board", {"name": None if area == "all" else area})
+
+    @reactive.effect
+    async def sync_park_tooltip_features():
+        if REAL_DATA is not None:
+            await session.send_custom_message("park_tooltip_features", park_tooltip_features)
+            await session.send_custom_message("board_tooltip_features", board_tooltip_names)
 
     @reactive.effect
     async def sync_panel_state():
@@ -359,13 +434,22 @@ def server(input, output, session):
                 "custom": custom_time,
                 "custom_speed": custom_speed,
             }
+            next_road = DEFAULT_ROAD_FILTER
+            if network_ready:
+                next_road = make_road_filter(input.road_highway() or (), input.road_access() or ())
+                if not next_road.categories:
+                    raise ValueError("Select at least one highway category.")
+                if not next_road.access:
+                    raise ValueError("Select at least one pedestrian accessibility class.")
             filter_error_text.set("")
         except (TypeError, ValueError) as error:
             filter_error_text.set(str(error))
             return
 
+        # Both filter groups validated: commit them together.
         applied.set(next_filters)
-        next_matches = calculate_matches(next_filters)
+        road_applied.set(next_road)
+        next_matches = calculate_matches(next_filters, next_road)
         results_snapshot.set(next_matches)
         refresh_applied_map_styles(next_filters, next_matches)
         has_searched.set(True)
@@ -392,7 +476,11 @@ def server(input, output, session):
             "custom_speed": False,
         }
         applied.set(reset_filters_state)
-        results_snapshot.set(calculate_matches(reset_filters_state))
+        road_applied.set(DEFAULT_ROAD_FILTER)
+        if network_ready:
+            ui.update_checkbox_group("road_highway", selected=list(HIGHWAY_CATEGORIES))
+            ui.update_checkbox_group("road_access", selected=["Walkable"])
+        results_snapshot.set(calculate_matches(reset_filters_state, DEFAULT_ROAD_FILTER))
         has_searched.set(True)
         refresh_applied_map_styles(reset_filters_state, None)
         view_state.set("results")
@@ -421,7 +509,7 @@ def server(input, output, session):
             view_state.set("map")
             fit_after_layout(next_filters)
             return
-        next_matches = calculate_matches(next_filters)
+        next_matches = calculate_matches(next_filters, road_applied())
         results_snapshot.set(next_matches)
         refresh_applied_map_styles(next_filters, next_matches)
         view_state.set("results")
@@ -433,6 +521,25 @@ def server(input, output, session):
         if filter_error_text():
             return ui.tags.div(filter_error_text(), class_="filter-error", role="alert")
         return ui.tags.div()
+
+    def keep_selected_demo_park_above_parks(park_id, selected_layer=None):
+        if REAL_DATA is not None or not park_id:
+            return
+        if selected_layer is None:
+            park_name = PARKS_BY_ID.get(park_id, {}).get("name")
+            selected_layer = next(
+                (layer for layer in map_layers["parks"] if layer.name == park_name),
+                None,
+            )
+        if selected_layer is None:
+            return
+        ordered_layers = selected_park_layer_order(
+            map_widget.layers,
+            map_layers["parks"],
+            selected_layer,
+        )
+        if any(before is not after for before, after in zip(map_widget.layers, ordered_layers)):
+            map_widget.layers = ordered_layers
 
     @reactive.effect
     def toggle_parks():
@@ -450,6 +557,9 @@ def server(input, output, session):
                 map_widget.add(layer)
             elif not should_show and layer in map_widget.layers:
                 map_widget.remove_layer(layer)
+        if REAL_DATA is None:
+            with reactive.isolate():
+                keep_selected_demo_park_above_parks(selected_park())
 
     @reactive.effect
     @reactive.event(input.toggle_board_mode)
@@ -505,6 +615,7 @@ def server(input, output, session):
         if park_id in PARKS_BY_ID:
             navigation_source.set("results")
             view_state.set("details")
+            open_details_filters()
             selected_park.set(park_id)
             show_details.set(True)
             focus_park(park_id)
@@ -520,6 +631,7 @@ def server(input, output, session):
         navigation_source.set("map")
         results_panel_collapsed.set(False)
         view_state.set("details")
+        open_details_filters()
         selected_park.set(park_id)
         show_details.set(True)
         focus_park(park_id)
@@ -649,19 +761,22 @@ def server(input, output, session):
     def highlight_selected():
         park_id = selected_park()
         if REAL_DATA is None:
+            selected_layer = None
             for layer in map_layers["parks"]:
                 if layer.name == PARKS_BY_ID.get(park_id, {}).get("name"):
-                    layer.color = "#00D5E8"
-                    layer.weight = 2
+                    selected_layer = layer
+                    layer.color = PARK_SELECTION_STYLE["color"]
+                    layer.weight = PARK_SELECTION_STYLE["weight"]
                     layer.opacity = 1
-                    layer.fill_color = "#78A67E"
-                    layer.fill_opacity = 0.45
+                    layer.fill_color = PARK_SELECTION_STYLE["fillColor"]
+                    layer.fill_opacity = PARK_SELECTION_STYLE["fillOpacity"]
                 else:
                     layer.color = "#4F8A66"
                     layer.weight = 0.6
                     layer.opacity = 0.55
                     layer.fill_color = "#78A67E"
                     layer.fill_opacity = 0.45
+            keep_selected_demo_park_above_parks(park_id, selected_layer)
             return
         feature = None
         if park_id and REAL_DATA is not None:
@@ -676,6 +791,87 @@ def server(input, output, session):
             map_widget.add(highlight_layer)
         elif not feature and highlight_layer in map_widget.layers:
             map_widget.remove_layer(highlight_layer)
+
+    EMPTY_COLLECTION = {"type": "FeatureCollection", "features": []}
+    road_layer = None
+    if network_ready:
+        # One line layer in its own non-interactive pane; only the scoped, filtered roads are ever sent to the browser.
+        road_layer = GeoJSON(
+            data=EMPTY_COLLECTION, style={"interactive": False}, name="Walking network",
+            pane=ROAD_PANE, options=["pm_ignore", "pane"],
+        )
+    road_state = {"key": None}
+    road_cache = {}
+
+    def road_scope():
+        """(park ids, RoadFilter) whose roads should be drawn, or None.
+
+        Details: the selected park with the temporary Details selection. Road Filter tab with a Local Board
+        selected: the Results parks with the applied Road Filter. All Auckland draws nothing (rendering limit only).
+        """
+        if not network_ready or not input.show_networks():
+            return None
+        if show_details() and selected_park() in PARKS_BY_ID:
+            return (selected_park(),), details_road()
+        if input.filter_tab() == "Road Filter" and has_searched() and applied()["area"] != "all":
+            return tuple(park["id"] for park in results_snapshot()), road_applied()
+        return None
+
+    @reactive.effect
+    def sync_road_layer():
+        input.map_viewport()  # layers are added only after the browser map view exists
+        if road_layer is None:
+            return
+        scope = road_scope()
+        key = (scope[0], scope[1]) if scope is not None and scope[1].is_valid else None
+        if key != road_state["key"]:
+            road_state["key"] = key
+            if key is None:
+                collection = EMPTY_COLLECTION
+            else:
+                if key not in road_cache:
+                    if len(road_cache) >= 16:
+                        road_cache.clear()
+                    road_cache[key] = feature_collection(NETWORK_DATA.features_by_park, key[0], key[1], road_line_style)
+                collection = road_cache[key]
+            road_layer.data = collection
+        has_roads = key is not None and bool(road_layer.data["features"])
+        if has_roads and road_layer not in map_widget.layers:
+            map_widget.add(road_layer)
+        elif not has_roads and road_layer in map_widget.layers:
+            map_widget.remove_layer(road_layer)
+
+    @reactive.effect
+    def sync_details_road():
+        # Only the current entry's widgets are read; their values never reach the main draft or applied state.
+        entry = details_entry()
+        categories = input[f"detail_highway_{entry}"]()
+        access = input[f"detail_access_{entry}"]()
+        with reactive.isolate():
+            if not show_details():
+                return
+        details_road.set(make_road_filter(categories or (), access or ()))
+
+    @render.ui
+    def details_network_charts():
+        park_id = selected_park()
+        road = details_road()
+        if not network_ready or park_id not in PARKS_BY_ID:
+            return ui.tags.div()
+        if not road.is_valid:
+            return ui.tags.p("Select at least one highway category and one accessibility class.", class_="muted network-empty")
+        return network_donuts(summarise(NETWORK_DATA.length_table, [park_id], road))
+
+    @render.ui
+    def results_network_summary():
+        snapshot, road = results_snapshot(), road_applied()
+        if not network_ready or not snapshot:
+            return ui.tags.div()
+        summary = summarise(NETWORK_DATA.length_table, [park["id"] for park in snapshot], road)
+        return ui.tags.div(
+            network_bars(summary, "No road segments match the applied road filter in these parks."),
+            class_="results-network",
+        )
 
     @render.ui
     def status_text():
@@ -704,6 +900,12 @@ def server(input, output, session):
             return ui.tags.div()
         if show_details() and selected_park() in PARKS_BY_ID:
             park = PARKS_BY_ID[selected_park()]
+            # Applied (main Road Filter) length: the same value that produced Results. Temporary Details
+            # selections only drive the exploratory map and donuts below.
+            park = {**park, "length": network_lengths(road_applied()).get(park["id"], 0.0)} if network_ready else park
+            details_entry_id = details_entry()
+            with reactive.isolate():
+                details_start = details_road()
             network_composition = park.get("network") or {}
             composition_palette = {
                 "Footway": "#245B45", "Path": "#D97706", "Track": "#7C5C3C", "Steps": "#8B4FB3",
@@ -782,9 +984,27 @@ def server(input, output, session):
                     class_="environment-grid",
                 ),
                 ui.tags.p("Validated park-level environmental data has not been integrated.", class_="detail-note"),
-                ui.h2("Walking network composition"),
-                composition,
-                ui.tags.p("Percentages use verified mapped network length. Road category groups primary, secondary, tertiary, residential and living-street segments; all other known categories retain their OSM highway name.", class_="detail-note") if network_composition else None,
+                ui.h2("Walking network composition") if not network_ready else None,
+                composition if not network_ready else ui.tags.div(
+                    ui.tags.details(
+                        ui.tags.summary("Explore walking network", class_="details-explore-summary"),
+                        ui.tags.div(
+                            ui.input_checkbox_group(
+                                f"detail_highway_{details_entry_id}", "Highway category", {name: name for name in HIGHWAY_CATEGORIES},
+                                selected=[name for name in HIGHWAY_CATEGORIES if name in details_start.categories],
+                            ),
+                            ui.input_checkbox_group(
+                                f"detail_access_{details_entry_id}", "Pedestrian accessibility", {name: name for name in ACCESS_CLASSES},
+                                selected=[name for name in ACCESS_CLASSES if name in details_start.access],
+                            ),
+                            class_="road-check-groups",
+                        ),
+                        class_="details-explore",
+                    ),
+                    ui.output_ui("details_network_charts"),
+                    class_="details-network",
+                ),
+                ui.tags.p("Percentages use verified mapped network length. Road category groups primary, secondary, tertiary, residential and living-street segments; all other known categories retain their OSM highway name.", class_="detail-note") if network_composition and not network_ready else None,
                 class_="details-content",
             )
 
@@ -822,6 +1042,7 @@ def server(input, output, session):
                 ui.tags.div(ui.tags.strong(f"{average_length:.1f}"), ui.tags.span("average km network", class_="summary-label"), class_="summary-item"),
                 class_="search-summary",
             ),
+            ui.output_ui("results_network_summary") if network_ready else None,
             ui.tags.div(
                 ui.tags.span("Sort by", class_="sort-label"),
                 ui.input_select("sort_results", None, {"name": "Park name", "area": "Area", "length": "Network length"}, selected=sort_key()),
@@ -866,7 +1087,7 @@ def server(input, output, session):
             results_scroll.set(float(value))
 
 
-app = App(app_ui(area_choices=LOCAL_BOARD_CHOICES, show_demo_notice=REAL_DATA is None, park_choices=PARK_SEARCH_CHOICES), server, static_assets={"/": Path(__file__).parent / "www"})
+app = App(app_ui(area_choices=LOCAL_BOARD_CHOICES, show_demo_notice=REAL_DATA is None, park_choices=PARK_SEARCH_CHOICES, road_filter=NETWORK_DATA is not None), server, static_assets={"/": Path(__file__).parent / "www"})
 
 if __name__ == "__main__":
     app.run()
