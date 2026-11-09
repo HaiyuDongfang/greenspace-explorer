@@ -31,8 +31,12 @@ Thumbs.db
 # Required runtime datasets (explicit allowlist; everything else above stays ignored)
 !/data/02processed/
 !/data/02processed/parks_with_localboard.gpkg
+!/data/02processed/park_walking_network.gpkg
+!/data/02processed/park_network_statistics.parquet
+
 !/data/01raw/
 !/data/01raw/road_network_in_parks_filtered.gpkg
+
 !/data/01raw/LocalElectoralBoundary_3350795404476040859/
 !/data/01raw/LocalElectoralBoundary_3350795404476040859/Local_Boards_(Outline).shp
 !/data/01raw/LocalElectoralBoundary_3350795404476040859/Local_Boards_(Outline).shx
