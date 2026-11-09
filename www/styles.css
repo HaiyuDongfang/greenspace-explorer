@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 
 :root {
   --ink: #17211b;
@@ -20,7 +20,7 @@ body { background: var(--neutral-bg); }
   height: 60px; display: flex; align-items: center;
   padding: 0 20px; background: #245B45; color: white;
 }
-.app-title { margin: 0; color: white; font-family: "Newsreader", Georgia, serif; font-size: 21px; font-weight: 600; }
+.app-title { margin: 0; color: white; font-family: "DM Sans", sans-serif; font-size: 21px; font-weight: 600; }
 .app-shell { position: absolute; top: 60px; left: 0; right: 0; bottom: 0; overflow: hidden; }
 .app-shell > .container-fluid { height: 100%; padding: 0; }
 .app-layout { display: flex; width: 100%; }
@@ -108,7 +108,7 @@ body { background: var(--neutral-bg); }
 .results-panel { height: 100%; min-height: 0; overflow-y: auto; }
 .results-content, .details-content { min-height: 100%; padding: 28px 24px 40px; }
 .details-content { padding-top: 24px; }
-.results-content h1, .details-content h1 { margin: 4px 0 5px; font-family: "Newsreader", Georgia, serif; font-size: 34px; line-height: 1.05; }
+.results-content h1, .details-content h1 { margin: 4px 0 5px; font-family: "DM Sans", sans-serif; font-size: 34px; line-height: 1.05; }
 .results-content h2, .details-content h2 { font-size: 15px; margin: 27px 0 12px; }
 .demo-label { margin: 0 0 8px; color: var(--green-dark); font-size: 10px; font-weight: 700; letter-spacing: .12em; }
 .detail-area { color: var(--muted); }
@@ -117,7 +117,7 @@ body { background: var(--neutral-bg); }
 .summary-item { border: 1px solid var(--line); border-radius: 7px; background: white; box-shadow: 0 2px 8px rgba(28,43,35,.05); }
 .summary-item { min-width: 0; padding: 15px 12px; border-right: 1px solid var(--line); text-align: center; }
 .summary-item:last-child { border-right: 0; }
-.summary-item strong { display: block; font-family: "Newsreader", Georgia, serif; font-size: 27px; }
+.summary-item strong { display: block; font-family: "DM Sans", sans-serif; font-size: 27px; }
 .summary-label { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
 .sort-control { display: grid; grid-template-columns: 50px 1fr; align-items: center; gap: 8px; margin-bottom: 12px; }
 .sort-control .shiny-input-container { margin: 0; }
@@ -127,7 +127,7 @@ body { background: var(--neutral-bg); }
 .park-result { position: relative; width: 100%; min-height: 78px; display: flex; flex-direction: column; justify-content: center; border: 0; border-bottom: 1px solid var(--line); border-radius: 6px; background: white; margin-bottom: 8px; padding: 12px 34px 12px 14px; text-align: left; cursor: pointer; box-shadow: 0 2px 8px rgba(28,43,35,.06); }
 .park-result:hover { background: var(--light-green); transform: translateY(-1px); }
 .park-result.selected { background: var(--light-green); border-left: 4px solid var(--primary-green); }
-.park-name { font-family: "Newsreader", Georgia, serif; font-size: 19px; }
+.park-name { font-family: "DM Sans", sans-serif; font-size: 19px; }
 .park-meta { margin-top: 3px; color: var(--muted); font-size: 12px; }
 .park-arrow { position: absolute; right: 10px; font-size: 25px; }
 
@@ -141,7 +141,7 @@ body { background: var(--neutral-bg); }
 .metric-label { color: var(--muted); font-size: 12px; }
 .walking-duration-summary { display: flex; flex-direction: column; padding: 14px 0 4px; }
 .walking-speed-label { color: var(--muted); font-size: 13px; }
-.walking-duration { margin-top: 2px; font-family: "Newsreader", Georgia, serif; font-size: 42px; line-height: 1; color: var(--primary-green); }
+.walking-duration { margin-top: 2px; font-family: "DM Sans", sans-serif; font-size: 42px; line-height: 1; color: var(--primary-green); }
 .duration-explanation, .detail-note { color: var(--muted); font-size: 12px; line-height: 1.45; }
 .environment-grid { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 12px 8px; font-size: 13px; }
 .environment-label { font-weight: 600; }
