@@ -1,8 +1,11 @@
 ﻿from math import isclose
 from pathlib import Path
 from unittest import SkipTest
+from unittest.mock import patch
 
+import geopandas as gpd
 import pandas as pd
+from shapely.geometry import LineString
 
 from src.data.network import (
     ACCESS_CLASSES,
@@ -12,6 +15,7 @@ from src.data.network import (
     eligible_park_ids,
     feature_collection,
     load_network_data,
+    load_network_features,
     load_network_stats,
     matching_park_ids,
     make_road_filter,
@@ -130,6 +134,21 @@ def test_feature_collection_is_scoped_to_parks_and_filter_with_style():
     assert len(feature_collection(features, ["A", "B", "A"], EVERYTHING)["features"]) == 3
 
 
+def test_network_features_use_fiona_in_pyodide():
+    frame = gpd.GeoDataFrame(
+        [{"GlobalID": "A", "highway_category": "Walking paths", "pedestrian_access": "Walkable",
+          "length_km": 1.0, "geometry": LineString([(1740000, 5920000), (1740001, 5920001)])}],
+        crs="EPSG:2193",
+    )
+    with patch("src.data.network.sys.platform", "emscripten"), patch(
+        "src.data.network.gpd.read_file", return_value=frame
+    ) as read_file:
+        features = load_network_features(Path("network.gpkg"))
+    assert read_file.call_args.kwargs["engine"] == "fiona"
+    assert features["A"][0]["properties"]["GlobalID"] == "A"
+    assert features["A"][0]["geometry"]["type"] == "LineString"
+
+
 def test_road_line_style_maps_category_to_colour_and_access_to_dash():
     from src.ui.network_charts import CATEGORY_COLORS, road_line_style
 
@@ -226,5 +245,4 @@ def test_matching_park_ids_uses_strict_threshold_and_ignores_unknown_parks():
     assert matching_park_ids(parks, lengths, "all", 4, 15) == []
     assert matching_park_ids(parks, lengths, "X", 4, 14.9) == ["a"]
     assert matching_park_ids(parks, lengths, "all", 0, 1) == []
-
 

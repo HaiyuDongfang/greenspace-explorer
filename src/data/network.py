@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+import sys
 from typing import Any
 
 import geopandas as gpd
@@ -200,7 +201,8 @@ def shares(values: Mapping[str, float], total: float) -> dict[str, float]:
 
 def load_network_features(path: Path, layer: str = "park_walking_network") -> dict[str, tuple[dict[str, Any], ...]]:
     """Read the processed GeoPackage once; return GeoJSON-like features grouped by park id (EPSG:4326)."""
-    frame = gpd.read_file(path, layer=layer, columns=FEATURE_COLUMNS, engine="pyogrio")
+    engine = "fiona" if sys.platform == "emscripten" else "pyogrio"
+    frame = gpd.read_file(path, layer=layer, columns=FEATURE_COLUMNS, engine=engine)
     if frame.crs is None or frame.crs.to_epsg() != SOURCE_CRS_EPSG:
         raise ValueError(f"{path} layer {layer} must be EPSG:{SOURCE_CRS_EPSG}, found {frame.crs}")
     if frame[PARK_ID_FIELD].isna().any():

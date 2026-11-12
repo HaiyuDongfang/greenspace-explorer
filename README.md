@@ -37,6 +37,18 @@ shiny run --reload app.py
 
 Open the local URL printed by Shiny. The demo uses `data/demo/parks.geojson` and `data/demo/networks.geojson`.
 
+## ShinyLive deployment
+
+The existing GitHub Pages export is in `docs/`. In Pyodide the walking-network
+GeoPackage is read with Fiona; local Python continues to use pyogrio. The
+export must include the Pyodide-compatible Fiona and PyArrow packages and the
+runtime datasets at their existing project-relative paths.
+
+When rebuilding the export, use a staging directory containing only the
+application and required runtime files: ShinyLive embeds files from its input
+directory, including files ignored by Git. Review `docs/app.json` before
+publishing to avoid exposing unintended local data.
+
 ## Production data
 
 Raw and large datasets should remain outside Git. Configure external files with environment variables:
